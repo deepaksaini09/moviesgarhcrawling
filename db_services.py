@@ -88,7 +88,7 @@ class dBServices:
                   """
             print(contentType, title, offerProviderUrl, totalEpisodeCount, existID)
             self.cursor.execute(SQL,
-                                (offerPrice, datetime.now(), title, offerProviderUrl, totalEpisodeCount, 1,existID))
+                                (offerPrice, datetime.now(), title, offerProviderUrl, totalEpisodeCount, 1, existID))
             print(self.cursor.statement)
             self.conn.commit()
             self.conn.close()
@@ -245,11 +245,12 @@ class dBServices:
                         FROM crawling_just_watch_offers 
             """
             if tmdbAndContentType:
-                SQL += """ where tmdb_ref_id="""+str(tmdbAndContentType[0])+ """  and content_type='"""+str(tmdbAndContentType[1])+"""'"""
+                SQL += """ where tmdb_ref_id=""" + str(tmdbAndContentType[0]) + """  and content_type='""" + str(
+                    tmdbAndContentType[1]) + """'"""
             else:
                 if providerName:
-                    SQL += """ where offer_provider_name like '%"""+str(providerName)+"""%' """
-                SQL += """  order by updated_at desc limit 1000 offset """+str(offset)
+                    SQL += """ where offer_provider_name like '%""" + str(providerName) + """%' """
+                SQL += """  order by updated_at desc limit 1000 offset """ + str(offset)
             self.cursor.execute(SQL)
             offersList = self.cursor.fetchall()
             if offersList:
@@ -877,8 +878,8 @@ class dBServices:
                    select id from song_source where song_id=%s  and source_provider_id=%s;
                   """
             if albumId:
-                SQL += """ and album_id="""+str(albumId)
-            self.cursor.execute(SQL, (songID,  songProviderID))
+                SQL += """ and album_id=""" + str(albumId)
+            self.cursor.execute(SQL, (songID, songProviderID))
             songSourceId = self.cursor.fetchone()
             if songSourceId:
                 self.conn.close()
@@ -1244,9 +1245,10 @@ class dBServices:
             print(error)
 
     # ------------------------------------------------------ IMDB -----------------------------------------------------
-    def insertDataIntoImdbRew(self,awardName, year, imdb_ref_id, people,people_imdb_id, performance_award, awardType,award_text):
+    def insertDataIntoImdbRew(self, awardName, year, imdb_ref_id, people, people_imdb_id, performance_award, awardType,
+                              award_text):
         try:
-            award_text=award_text.strip()
+            award_text = award_text.strip()
             awardId = self.movieHavingAlreadyAward(imdb_ref_id, people_imdb_id, performance_award, awardType,
                                                    awardName, year, award_text)
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
@@ -1267,8 +1269,6 @@ class dBServices:
 
         except Exception as error:
             print(error)
-
-
 
     def insertDataIntoImdbReward(self, award_name, year, awardType, award_text, peopleWithAward, imdbID):
         try:
@@ -1872,7 +1872,7 @@ class dBServices:
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             # SQL
             SQL = """ select id from contents """
-            SQL += """ where   imdb_ref_id='"""+str(imdbRefID)+"""'"""
+            SQL += """ where   imdb_ref_id='""" + str(imdbRefID) + """'"""
             self.cursor.execute(SQL)
             data = self.cursor.fetchone()
             if data:
@@ -1929,8 +1929,8 @@ class dBServices:
             # SQL
             SQL = """ select id from content_queue_temp where content_id=%s """
             if contentType:
-                SQL += """ and content_type='"""+str(contentType)+"""'"""
-            self.cursor.execute(SQL, (contentID, ))
+                SQL += """ and content_type='""" + str(contentType) + """'"""
+            self.cursor.execute(SQL, (contentID,))
             data = self.cursor.fetchone()
             if data:
                 self.conn.close()
@@ -1967,7 +1967,7 @@ class dBServices:
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             # SQL
             SQL = """ select content_type, tmdb_ref_id  from contents where id=%s"""
-            self.cursor.execute(SQL, (contentID, ))
+            self.cursor.execute(SQL, (contentID,))
             data = self.cursor.fetchone()
             if data[0]:
                 self.conn.close()
@@ -1994,3 +1994,154 @@ class dBServices:
         except Exception as error:
             print(error)
 
+    def getTmdbID(self, contentType):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select id, tmdb_ref_id from contents where tmdb_ref_id is not null and content_type=%s"""
+            self.cursor.execute(SQL, (contentType,))
+            data = self.cursor.fetchall()
+            self.conn.close()
+            return data
+        except Exception as error:
+            print(error)
+
+    def checkIfAlreadyPeopleExistInPeople(self, cur, peopleTmdb):
+        try:
+            SQL = """ select id from people where tmdb_reference_id=%s"""
+            cur.execute(SQL, (peopleTmdb,))
+            data = cur.fetchone()
+            if data:
+                return data['id']
+            return False
+        except Exception as error:
+            print(error)
+
+    def insertCastAndCrew(self, castAndCrewDetails):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            peopleExistOrNot = self.checkIfAlreadyPeopleExistInPeople(self.cursor, castAndCrewDetails['peopleTmdbID'])
+            if not peopleExistOrNot:
+                SQL = """ insert into people(first_name,
+                               last_name,
+                               real_name,
+                               status,
+                               tmdb_reference_id,
+                               imdb_ref_id,
+                               popularity,
+                               imdb_rating,
+                               profile_path,updated_at) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            
+                      """
+                self.cursor.execute(SQL, (castAndCrewDetails['firstName'], castAndCrewDetails['lastName'],
+                                          castAndCrewDetails['realName'], 'publish', castAndCrewDetails['peopleTmdbID'],
+                                          None, castAndCrewDetails['popularity'], None,
+                                          castAndCrewDetails['profile_path'],
+                                          datetime.now()
+                                          ))
+                self.conn.commit()
+                self.conn.close()
+                return self.cursor.lastrowid
+            SQL = """ update people set updated_at=now() where id=%s"""
+            self.cursor.execute(SQL, (peopleExistOrNot,))
+            self.conn.commit()
+            self.conn.close()
+            return peopleExistOrNot
+        except Exception as error:
+            print(error)
+
+    def checkIfPeopleRoleExistOrNot(self, cur, contentID, sessionID, personID, character):
+        try:
+            SQL = """ select id from content_role_people where content_id=%s and 
+                                                               person_id=%s and 
+                                                               character_name=%s
+                  """
+            if character is None:
+                character = ''
+            if sessionID:
+                SQL += """ and season_id=%s""" + str(sessionID)
+            cur.execute(SQL, (contentID, personID, str(character).strip()))
+            data = cur.fetchone()
+            if data:
+                return data['id']
+            return False
+        except Exception as error:
+            print(error)
+
+    def insertIntoContentRole(self, contentID, sessionID, personID, roleID,
+                              createdAt, updatedAt, order, character,
+                              status, peopleImdbID):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            peopleID = self.checkIfPeopleRoleExistOrNot(self.cursor, contentID, sessionID, personID, character)
+            if not peopleID:
+                SQL = """ 
+                        insert into content_role_people(content_id, season_id, person_id, role_id, created_at, updated_at, people_order,
+                                    character_name, status, people_tmdb_ref_id)values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
+    
+                      """
+                self.cursor.execute(SQL,
+                                    (contentID, sessionID, personID, roleID, createdAt, updatedAt, order, character,
+                                     status, peopleImdbID))
+                self.conn.commit()
+                return self.cursor.lastrowid
+            SQL = """ update content_role_people set updated_at=now() where id=%s"""
+            self.cursor.execute(SQL, (peopleID,))
+            self.conn.commit()
+            self.conn.close()
+            return peopleID
+        except Exception as error:
+            print(error)
+
+    def getPeopleRole(self, roleName):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select id from roles where name =%s"""
+            self.cursor.execute(SQL, (roleName,))
+            roleID = self.cursor.fetchone()
+            if roleID:
+                self.conn.close()
+                return roleID['id']
+            self.conn.close()
+            return False
+        except Exception as error:
+            print(error)
+
+    def checkIfContentImagesAlreadyExist(self, contentID, sessionID):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select id from content_images_mapping  where content_id=%s """
+            if sessionID:
+                SQL += """ and season_id=%s """
+            self.cursor.execute(SQL, (contentID, sessionID))
+            data = self.cursor.fetchone()
+            if data:
+                self.conn.close()
+                return True
+            self.conn.close()
+            return False
+        except Exception as error:
+            print(error)
+
+    def updateImagesOfContents(self, imagePath, backdropsID):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ insert into images(image_type, image_url, updated_at, status) values(%s,%s,%s,%s)"""
+            self.cursor.execute(SQL, (backdropsID, imagePath, datetime.now(), 'publish'))
+            self.conn.commit()
+            imageID = self.cursor.lastrowid
+            self.conn.close()
+            return imageID
+        except Exception as error:
+            print(error)
+
+    def updateImagesIntoContentImageMapping(self, imageID, contentID, sessionID):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ insert into content_images_mapping(image_id, content_id, season_id,
+                                 updated_at, status) values(%s,%s,%s,%s,%s)
+                  """
+            self.cursor.execute(SQL, (imageID, contentID, sessionID, datetime.now(), 'publish'))
+            self.conn.commit()
+            self.conn.close()
+        except Exception as error:
+            print(error)
