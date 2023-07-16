@@ -2109,10 +2109,10 @@ class dBServices:
     def checkIfContentImagesAlreadyExist(self, contentID, sessionID):
         try:
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
-            SQL = """ select id from content_images_mapping  where content_id=%s """
+            SQL = """ select id from content_images_mapping  where content_id=%s"""
             if sessionID:
-                SQL += """ and season_id=%s """
-            self.cursor.execute(SQL, (contentID, sessionID))
+                SQL += """ and season_id= """+str(sessionID)
+            self.cursor.execute(SQL, (contentID,))
             data = self.cursor.fetchone()
             if data:
                 self.conn.close()

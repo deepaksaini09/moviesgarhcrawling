@@ -60,26 +60,35 @@ def peopleData():
         apiContentType = 'movie'
         if contentType != 'MOVIE':
             apiContentType = 'tv'
-        contentID = 1
         tmdbID = dbServicesObj.getTmdbID(contentType)
         # tmdbID = [{'tmdb_ref_id': 284053}]
         for i in tmdbID:
-            url = f"https://api.themoviedb.org/3/{apiContentType}/{i['tmdb_ref_id']}/credits?language=en-US"
-            headers = {
-                "accept": "application/json",
-                "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1MTlmZThiZGZhOGYxNDM4YTljNTRmNzNhOGYxNTM5YiIsInN1YiI6IjYzM2I2MDY1ZjEwYTFhMDA4MTA3MzdjOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n_-VoXG5hr2IDuZ0B1oe0vHiJI4lde17uZorqTG5ZqI"
-            }
-            response = requests.get(url, headers=headers)
-            data = json.loads(response.text)
-            castData = data['cast']
-            crewData = data['crew']
-            sessionID = None
-            if contentType == 'MOVIE':
+            try:
+                url = f"https://api.themoviedb.org/3/{apiContentType}/{i['tmdb_ref_id']}/credits?language=en-US"
+                headers = {
+                    "accept": "application/json",
+                    "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1MTlmZThiZGZhOGYxNDM4YTljNTRmNzNhOGYxNTM5YiIsInN1YiI6IjYzM2I2MDY1ZjEwYTFhMDA4MTA3MzdjOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n_-VoXG5hr2IDuZ0B1oe0vHiJI4lde17uZorqTG5ZqI"
+                }
+                contentID = i['id']
+                response = requests.get(url, headers=headers)
+                data = json.loads(response.text)
+                castData = data['cast']
+                crewData = data['crew']
                 sessionID = None
-            for i in castData:
-                updateCastCrewInformation(i, contentID, sessionID)
-            for i in crewData[:10]:
-                updateCastCrewInformation(i, contentID, sessionID)
+                if contentType == 'MOVIE':
+                    sessionID = None
+                for i in castData:
+                    try:
+                        updateCastCrewInformation(i, contentID, sessionID)
+                    except Exception as error:
+                        print(error)
+                for i in crewData[:10]:
+                    try:
+                        updateCastCrewInformation(i, contentID, sessionID)
+                    except Exception as error:
+                        print(error)
+            except Exception as error:
+                print(error)
     except Exception as error:
         print(error)
 
@@ -103,42 +112,52 @@ def updateMoviesAndShows():
 def commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID):
     try:
         imagePath = i['file_path']
-        if not dbServicesObj.checkIfContentImagesAlreadyExist(contentID, sessionID):
-            imageID = dbServicesObj.updateImagesOfContents(imagePath, backdropsID)
-            dbServicesObj.updateImagesIntoContentImageMapping(imageID, contentID, sessionID)
-        else:
-            print('images already exist')
+        imageID = dbServicesObj.updateImagesOfContents(imagePath, backdropsID)
+        dbServicesObj.updateImagesIntoContentImageMapping(imageID, contentID, sessionID)
     except Exception as error:
         print(error)
 
 
 def updateImages():
     try:
-        tmdbMovieId = 1
-        sessionID = None
-        contentID = 1
         contentType = 'MOVIE'
-        apiContentType = 'movie'
-        if contentType != 'MOVIE':
-            apiContentType = 'tv'
-        url = f"https://api.themoviedb.org/3/{apiContentType}/{tmdbMovieId}/images"
-        headers = {
-            "accept": "application/json",
-            "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1MTlmZThiZGZhOGYxNDM4YTljNTRmNzNhOGYxNTM5YiIsInN1YiI6IjYzM2I2MDY1ZjEwYTFhMDA4MTA3MzdjOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n_-VoXG5hr2IDuZ0B1oe0vHiJI4lde17uZorqTG5ZqI"
-        }
-        response = requests.get(url, headers=headers)
-        data = json.loads(response.text)
-        backdrops = data['backdrops']
-        posters = data['posters']
-        backdropsID = None
-        for i in backdrops:
-            backdropsID = 6
-            commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID)
-        for i in posters:
-            backdropsID = 7
-            commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID)
+        tmdbID = dbServicesObj.getTmdbID(contentType)
+        for moviesDetails in tmdbID:
+            try:
+                sessionID = None
+                contentID = moviesDetails['id']
+                apiContentType = 'movie'
+                if contentType != 'MOVIE':
+                    apiContentType = 'tv'
+                url = f"https://api.themoviedb.org/3/{apiContentType}/{moviesDetails['tmdb_ref_id']}/images"
+                headers = {
+                    "accept": "application/json",
+                    "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI1MTlmZThiZGZhOGYxNDM4YTljNTRmNzNhOGYxNTM5YiIsInN1YiI6IjYzM2I2MDY1ZjEwYTFhMDA4MTA3MzdjOCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.n_-VoXG5hr2IDuZ0B1oe0vHiJI4lde17uZorqTG5ZqI"
+                }
+                response = requests.get(url, headers=headers)
+                data = json.loads(response.text)
+                backdrops = data['backdrops'][:10]
+                posters = data['posters'][:10]
+                backdropsID = None
+                if dbServicesObj.checkIfContentImagesAlreadyExist(contentID, sessionID):
+                    continue
+                for i in backdrops:
+                    try:
+                        backdropsID = 6
+                        commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID)
+                    except Exception as error:
+                        print(error)
+                for i in posters:
+                    try:
+                        backdropsID = 7
+                        commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID)
+                    except Exception as error:
+                        print(error)
+            except Exception as error:
+                print(error)
 
 
 
     except Exception as error:
         print(error)
+
