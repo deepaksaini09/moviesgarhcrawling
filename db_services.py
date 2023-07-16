@@ -2016,10 +2016,10 @@ class dBServices:
         except Exception as error:
             print(error)
 
-    def insertCastAndCrew(self, castAndCrewDetails):
+    def insertCastAndCrew(self, conn, cursor, castAndCrewDetails):
         try:
-            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
-            peopleExistOrNot = self.checkIfAlreadyPeopleExistInPeople(self.cursor, castAndCrewDetails['peopleTmdbID'])
+            # self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            peopleExistOrNot = self.checkIfAlreadyPeopleExistInPeople(cursor, castAndCrewDetails['peopleTmdbID'])
             if not peopleExistOrNot:
                 SQL = """ insert into people(first_name,
                                last_name,
@@ -2032,19 +2032,19 @@ class dBServices:
                                profile_path,updated_at) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                             
                       """
-                self.cursor.execute(SQL, (castAndCrewDetails['firstName'], castAndCrewDetails['lastName'],
+                cursor.execute(SQL, (castAndCrewDetails['firstName'], castAndCrewDetails['lastName'],
                                           castAndCrewDetails['realName'], 'publish', castAndCrewDetails['peopleTmdbID'],
                                           None, castAndCrewDetails['popularity'], None,
                                           castAndCrewDetails['profile_path'],
                                           datetime.now()
                                           ))
-                self.conn.commit()
-                self.conn.close()
-                return self.cursor.lastrowid
+                conn.commit()
+                # self.conn.close()
+                return cursor.lastrowid
             SQL = """ update people set updated_at=now() where id=%s"""
-            self.cursor.execute(SQL, (peopleExistOrNot,))
-            self.conn.commit()
-            self.conn.close()
+            cursor.execute(SQL, (peopleExistOrNot,))
+            conn.commit()
+            # self.conn.close()
             return peopleExistOrNot
         except Exception as error:
             print(error)
@@ -2067,81 +2067,74 @@ class dBServices:
         except Exception as error:
             print(error)
 
-    def insertIntoContentRole(self, contentID, sessionID, personID, roleID,
+    def insertIntoContentRole(self, conn, cursor, contentID, sessionID, personID, roleID,
                               createdAt, updatedAt, order, character,
                               status, peopleImdbID):
         try:
-            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
-            peopleID = self.checkIfPeopleRoleExistOrNot(self.cursor, contentID, sessionID, personID, character)
+            # self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            peopleID = self.checkIfPeopleRoleExistOrNot(cursor, contentID, sessionID, personID, character)
             if not peopleID:
                 SQL = """ 
                         insert into content_role_people(content_id, season_id, person_id, role_id, created_at, updated_at, people_order,
                                     character_name, status, people_tmdb_ref_id)values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
     
                       """
-                self.cursor.execute(SQL,
+                cursor.execute(SQL,
                                     (contentID, sessionID, personID, roleID, createdAt, updatedAt, order, character,
                                      status, peopleImdbID))
-                self.conn.commit()
-                return self.cursor.lastrowid
+                conn.commit()
+                return cursor.lastrowid
             SQL = """ update content_role_people set updated_at=now() where id=%s"""
-            self.cursor.execute(SQL, (peopleID,))
-            self.conn.commit()
-            self.conn.close()
+            cursor.execute(SQL, (peopleID,))
+            conn.commit()
+            # self.conn.close()
             return peopleID
         except Exception as error:
             print(error)
 
-    def getPeopleRole(self, roleName):
+    def getPeopleRole(self, conn, cursor, roleName):
         try:
-            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            # self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             SQL = """ select id from roles where name =%s"""
-            self.cursor.execute(SQL, (roleName,))
-            roleID = self.cursor.fetchone()
+            cursor.execute(SQL, (roleName,))
+            roleID = cursor.fetchone()
             if roleID:
-                self.conn.close()
+                # self.conn.close()
                 return roleID['id']
-            self.conn.close()
+            # self.conn.close()
             return False
         except Exception as error:
             print(error)
 
-    def checkIfContentImagesAlreadyExist(self, contentID, sessionID):
+    def checkIfContentImagesAlreadyExist(self, cursor, conn, contentID, sessionID):
         try:
-            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             SQL = """ select id from content_images_mapping  where content_id=%s"""
             if sessionID:
                 SQL += """ and season_id= """+str(sessionID)
-            self.cursor.execute(SQL, (contentID,))
-            data = self.cursor.fetchone()
+            cursor.execute(SQL, (contentID,))
+            data = cursor.fetchone()
             if data:
-                self.conn.close()
                 return True
-            self.conn.close()
             return False
         except Exception as error:
             print(error)
 
-    def updateImagesOfContents(self, imagePath, backdropsID):
+    def updateImagesOfContents(self, cursor, conn, imagePath, backdropsID):
         try:
-            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             SQL = """ insert into images(image_type, image_url, updated_at, status) values(%s,%s,%s,%s)"""
-            self.cursor.execute(SQL, (backdropsID, imagePath, datetime.now(), 'publish'))
-            self.conn.commit()
-            imageID = self.cursor.lastrowid
-            self.conn.close()
+            cursor.execute(SQL, (backdropsID, imagePath, datetime.now(), 'publish'))
+            conn.commit()
+            imageID = cursor.lastrowid
             return imageID
         except Exception as error:
             print(error)
 
-    def updateImagesIntoContentImageMapping(self, imageID, contentID, sessionID):
+    def updateImagesIntoContentImageMapping(self, cursor, conn, imageID, contentID, sessionID):
         try:
-            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             SQL = """ insert into content_images_mapping(image_id, content_id, season_id,
                                  updated_at, status) values(%s,%s,%s,%s,%s)
                   """
-            self.cursor.execute(SQL, (imageID, contentID, sessionID, datetime.now(), 'publish'))
-            self.conn.commit()
-            self.conn.close()
+            cursor.execute(SQL, (imageID, contentID, sessionID, datetime.now(), 'publish'))
+            conn.commit()
         except Exception as error:
             print(error)

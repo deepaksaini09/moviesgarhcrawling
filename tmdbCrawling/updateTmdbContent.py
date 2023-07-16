@@ -2,9 +2,9 @@ import datetime
 import json
 import requests
 from db_services import dBServices
-
+from db_connections import dBConnection
 dbServicesObj = dBServices()
-
+dBConnectionObj = dBConnection()
 
 def getFirstAndLastName(name):
     firstName, lastName = None, None
@@ -16,7 +16,7 @@ def getFirstAndLastName(name):
     return firstName, lastName
 
 
-def updateCastCrewInformation(i, contentID, sessionID):
+def updateCastCrewInformation(conn, cursor, i, contentID, sessionID):
     try:
         peopleTmdbID = i['id']
         known_for_department = i['known_for_department']
@@ -40,9 +40,9 @@ def updateCastCrewInformation(i, contentID, sessionID):
                          'popularity': popularity,
                          'profile_path': profile_path
                          }
-        personID = dbServicesObj.insertCastAndCrew(peopleDetails)
-        roleID = dbServicesObj.getPeopleRole(known_for_department)
-        contentROle = dbServicesObj.insertIntoContentRole(contentID, sessionID, personID, roleID,
+        personID = dbServicesObj.insertCastAndCrew(conn, cursor, peopleDetails)
+        roleID = dbServicesObj.getPeopleRole(conn, cursor, known_for_department)
+        contentROle = dbServicesObj.insertIntoContentRole(conn, cursor, contentID, sessionID, personID, roleID,
                                                           datetime.datetime.now(), datetime.datetime.now(),
                                                           order, character,
                                                           'publish', None)
@@ -61,6 +61,7 @@ def peopleData():
         if contentType != 'MOVIE':
             apiContentType = 'tv'
         tmdbID = dbServicesObj.getTmdbID(contentType)
+        conn, cursor = dBConnectionObj.dBConnectionForStreamA2Z()
         # tmdbID = [{'tmdb_ref_id': 284053}]
         for i in tmdbID:
             try:
@@ -79,7 +80,7 @@ def peopleData():
                     sessionID = None
                 for i in castData:
                     try:
-                        updateCastCrewInformation(i, contentID, sessionID)
+                        updateCastCrewInformation(conn, cursor, i, contentID, sessionID)
                     except Exception as error:
                         print(error)
                 for i in crewData[:10]:
@@ -109,11 +110,11 @@ def updateMoviesAndShows():
         print(error)
 
 
-def commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID):
+def commonFunctionForUpdatingImages(cursor, conn, i, contentID, sessionID, backdropsID):
     try:
         imagePath = i['file_path']
-        imageID = dbServicesObj.updateImagesOfContents(imagePath, backdropsID)
-        dbServicesObj.updateImagesIntoContentImageMapping(imageID, contentID, sessionID)
+        imageID = dbServicesObj.updateImagesOfContents(cursor, conn, imagePath, backdropsID)
+        dbServicesObj.updateImagesIntoContentImageMapping(cursor, conn, imageID, contentID, sessionID)
     except Exception as error:
         print(error)
 
@@ -122,6 +123,7 @@ def updateImages():
     try:
         contentType = 'MOVIE'
         tmdbID = dbServicesObj.getTmdbID(contentType)
+        conn, cursor = dBConnectionObj.dBConnectionForStreamA2Z()
         for moviesDetails in tmdbID:
             try:
                 sessionID = None
@@ -139,22 +141,23 @@ def updateImages():
                 backdrops = data['backdrops'][:10]
                 posters = data['posters'][:10]
                 backdropsID = None
-                if dbServicesObj.checkIfContentImagesAlreadyExist(contentID, sessionID):
+                if dbServicesObj.checkIfContentImagesAlreadyExist(cursor, conn, contentID, sessionID):
                     continue
                 for i in backdrops:
                     try:
                         backdropsID = 6
-                        commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID)
+                        commonFunctionForUpdatingImages(cursor, conn, i, contentID, sessionID, backdropsID)
                     except Exception as error:
                         print(error)
                 for i in posters:
                     try:
                         backdropsID = 7
-                        commonFunctionForUpdatingImages(i, contentID, sessionID, backdropsID)
+                        commonFunctionForUpdatingImages(cursor, conn, i, contentID, sessionID, backdropsID)
                     except Exception as error:
                         print(error)
             except Exception as error:
                 print(error)
+        conn.close()
 
 
 
