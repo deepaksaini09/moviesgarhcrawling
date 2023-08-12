@@ -1,3 +1,3 @@
-from updateTmdbContent import peopleData
+from updateTmdbContent import peopleData, peopleDataForShowsSeason
 
-peopleData()
+peopleDataForShowsSeason()

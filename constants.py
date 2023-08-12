@@ -22,4 +22,4 @@ class constants:
 
     METAREEL_CRAWLING = 'moviesgarhcrawling'
     TMDB_DETAILS = None
-
+    domainName = 'moviesgarh'

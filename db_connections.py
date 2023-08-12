@@ -35,11 +35,9 @@ class dBConnection:
                                                 )
             if self.conn.is_connected():
                 db_Info = self.conn.get_server_info()
-                print("Connected to MySQL Server version ", db_Info)
                 self.cursor = self.conn.cursor(dictionary=True)
         except Error as error:
             print("Error while connecting to MySQL", error)
         finally:
             if self.conn.is_connected():
-                print("MySQL self.conn is closed")
                 return self.conn, self.cursor

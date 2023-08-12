@@ -119,13 +119,13 @@ class dBServices:
                 # SQL
                 SQL = """ insert into content_offers(title, content_id, content_type, streaming_provider, monetization,
                                video_presentation, audio_language, retail_price, currency, standard_web_url, status,
-                               crawl_episode_number,crawl_season_number,season_number,episode_number,total_episodes_count, 
-                               created_at, updated_at,updated_from)values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
+                               season_number,total_episodes_count, 
+                               created_at, updated_at)values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);
                       """
                 self.cursor.execute(SQL, (title, contentID, contentType, streamID, moniID, vPID, originalLanguageId,
-                                          offerPrice, currency, offer_provider_url, status, episodeNumber, seasonNumber,
-                                          seasonNumber, episodeNumber, seasonHavingTotalEpisode, created_at, updated_at,
-                                          1))
+                                          offerPrice, currency, offer_provider_url, status, seasonNumber,
+                                          seasonHavingTotalEpisode, created_at, updated_at
+                                          ))
                 self.conn.commit()
                 self.conn.close()
             else:
@@ -156,7 +156,7 @@ class dBServices:
             existOffersID = self.cursor.fetchone()
             if existOffersID:
                 self.conn.close()
-                return existOffersID[0]
+                return existOffersID['contentOffersId']
             self.conn.close()
             return False
         except Exception as error:
@@ -170,9 +170,10 @@ class dBServices:
                         WHERE cnd_name=%s and cnd_type=%s"""
             self.cursor.execute(SQL, (availableFor, 'STREAMING_TYPE'))
             moniID = self.cursor.fetchone()
+            print(moniID)
             if moniID:
                 self.conn.close()
-                return moniID[0]
+                return moniID['mID']
             self.conn.close()
             return False
         except Exception as error:
@@ -187,7 +188,7 @@ class dBServices:
             offersID = self.cursor.fetchone()
             if offersID:
                 self.conn.close()
-                return offersID[0]
+                return offersID['vPID']
             self.conn.close()
             return False
         except Exception as error:
@@ -197,12 +198,12 @@ class dBServices:
         try:
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             # SQL
-            SQL = """ SELECT A.id as stramID  FROM streaming_provider A WHERE provider =%s """
+            SQL = """ SELECT A.id as stremID  FROM streaming_provider A WHERE provider =%s """
             self.cursor.execute(SQL, (offerProviderName,))
             streamProviderID = self.cursor.fetchone()
             if streamProviderID:
                 self.conn.close()
-                return streamProviderID[0]
+                return streamProviderID['stremID']
             self.conn.close()
             return False
 
@@ -599,12 +600,12 @@ class dBServices:
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             # SQL
             SQL = """
-                   select id, url,url_type from crawling_gadget360_list_page
+                   select id, url,url_type from crawling_gadget360_list_page 
                   """
             if releasedType:
                 SQL += """  where released_type= '""" + str(releasedType) + """'"""
-            else:
-                SQL += """ where url_type <> 'web' """
+            # else:
+            #     SQL += """ where url_type <> 'web' """
             self.cursor.execute(SQL)
             songsUrl = self.cursor.fetchall()
             print(len(songsUrl))
@@ -643,7 +644,7 @@ class dBServices:
             movieID = self.cursor.fetchone()
             if movieID:
                 self.conn.close()
-                return movieID[0], movieID[1]
+                return movieID['id'], movieID['content_type']
             self.conn.close()
             return False, False
         except Exception as error:
@@ -1877,7 +1878,7 @@ class dBServices:
             data = self.cursor.fetchone()
             if data:
                 self.conn.close()
-                return data[0]
+                return data['id']
             self.conn.close()
             return False
         except Exception as error:
@@ -1997,7 +1998,7 @@ class dBServices:
     def getTmdbID(self, contentType):
         try:
             self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
-            SQL = """ select id, tmdb_ref_id from contents where tmdb_ref_id is not null and content_type=%s"""
+            SQL = """ select id, tmdb_ref_id,no_of_seasons from contents where tmdb_ref_id is not null and content_type=%s order by updated_at desc"""
             self.cursor.execute(SQL, (contentType,))
             data = self.cursor.fetchall()
             self.conn.close()
@@ -2033,11 +2034,11 @@ class dBServices:
                             
                       """
                 cursor.execute(SQL, (castAndCrewDetails['firstName'], castAndCrewDetails['lastName'],
-                                          castAndCrewDetails['realName'], 'publish', castAndCrewDetails['peopleTmdbID'],
-                                          None, castAndCrewDetails['popularity'], None,
-                                          castAndCrewDetails['profile_path'],
-                                          datetime.now()
-                                          ))
+                                     castAndCrewDetails['realName'], 'publish', castAndCrewDetails['peopleTmdbID'],
+                                     None, castAndCrewDetails['popularity'], None,
+                                     castAndCrewDetails['profile_path'],
+                                     datetime.now()
+                                     ))
                 conn.commit()
                 # self.conn.close()
                 return cursor.lastrowid
@@ -2058,7 +2059,7 @@ class dBServices:
             if character is None:
                 character = ''
             if sessionID:
-                SQL += """ and season_id=%s""" + str(sessionID)
+                SQL += """ and season_id=""" + str(sessionID)
             cur.execute(SQL, (contentID, personID, str(character).strip()))
             data = cur.fetchone()
             if data:
@@ -2080,8 +2081,8 @@ class dBServices:
     
                       """
                 cursor.execute(SQL,
-                                    (contentID, sessionID, personID, roleID, createdAt, updatedAt, order, character,
-                                     status, peopleImdbID))
+                               (contentID, sessionID, personID, roleID, createdAt, updatedAt, order, character,
+                                status, peopleImdbID))
                 conn.commit()
                 return cursor.lastrowid
             SQL = """ update content_role_people set updated_at=now() where id=%s"""
@@ -2106,13 +2107,19 @@ class dBServices:
         except Exception as error:
             print(error)
 
-    def checkIfContentImagesAlreadyExist(self, cursor, conn, contentID, sessionID):
+    def checkIfContentImagesAlreadyExist(self, cursor, conn, contentID, sessionID, imageType):
         try:
-            SQL = """ select id from content_images_mapping  where content_id=%s"""
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select c.content_id, i.image_type
+                        from content_images_mapping c
+                                 join images i on c.image_id = i.id
+                        where c.content_id =%s and image_type=%s
+                    """
             if sessionID:
-                SQL += """ and season_id= """+str(sessionID)
-            cursor.execute(SQL, (contentID,))
-            data = cursor.fetchone()
+                SQL += """ and season_id= """ + str(sessionID)
+            self.cursor.execute(SQL, (contentID, imageType))
+            data = self.cursor.fetchone()
+            self.conn.close()
             if data:
                 return True
             return False
@@ -2121,20 +2128,133 @@ class dBServices:
 
     def updateImagesOfContents(self, cursor, conn, imagePath, backdropsID):
         try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             SQL = """ insert into images(image_type, image_url, updated_at, status) values(%s,%s,%s,%s)"""
-            cursor.execute(SQL, (backdropsID, imagePath, datetime.now(), 'publish'))
-            conn.commit()
+            self.cursor.execute(SQL, (backdropsID, imagePath, datetime.now(), 'publish'))
+            self.conn.commit()
             imageID = cursor.lastrowid
+            self.conn.close()
             return imageID
         except Exception as error:
             print(error)
 
     def updateImagesIntoContentImageMapping(self, cursor, conn, imageID, contentID, sessionID):
         try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
             SQL = """ insert into content_images_mapping(image_id, content_id, season_id,
                                  updated_at, status) values(%s,%s,%s,%s,%s)
                   """
-            cursor.execute(SQL, (imageID, contentID, sessionID, datetime.now(), 'publish'))
-            conn.commit()
+            self.cursor.execute(SQL, (imageID, contentID, sessionID, datetime.now(), 'publish'))
+            self.conn.commit()
+            self.conn.close()
+        except Exception as error:
+            print(error)
+
+    def getSessionID(self, contentID, seasonNumber):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select id from content_seasons where content_id=%s and season_number=%s """
+            self.cursor.execute(SQL, (contentID, seasonNumber))
+            seasonID = self.cursor.fetchone()
+            self.conn.close()
+            if seasonID:
+                return seasonID['id']
+            return False
+        except Exception as error:
+            print(error)
+
+    def getMoviesNameForGenerateSeoData(self, contentType):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select id, title from contents where content_type=%s"""
+            self.cursor.execute(SQL, (contentType,))
+            data = self.cursor.fetchall()
+            self.conn.close()
+            if data:
+                return data
+            return False
+        except Exception as error:
+            print(error)
+
+    def getShowDataForGenerateSeoData(self, contentType):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ 
+                select cs.id, content_id, c.title, season_number
+                from contents c
+                         join content_seasons cs on c.id = cs.content_id
+                where content_type = %s           
+            """
+            self.cursor.execute(SQL, (contentType,))
+            data = self.cursor.fetchall()
+            self.conn.close()
+            if data:
+                return data
+            return False
+        except Exception as error:
+            print(error)
+
+    def checkIfAlreadyExistSeoUrl(self, contentID, status, pageType):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select * from seo where entity_id=%s and status=%s and page_type=%s"""
+            self.cursor.execute(SQL, (contentID, status, pageType))
+            data = self.cursor.fetchall()
+            self.conn.close()
+            if data:
+                return True
+            return False
+        except Exception as error:
+            print(error)
+
+    def insertDataIntoSeoTable(self, contentID, seoUrl, metaDescription, heading, metaPageTitle, pageType):
+        try:
+            if not self.checkIfAlreadyExistSeoUrl(contentID, 'publish', pageType):
+                self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+                SQL = """ insert into seo(page_type, entity_id, seo_source, indexable, anchor_text, meta_page_title, 
+                                        meta_page_desc, meta_keywords, updated_at, status, heading)
+                                        values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                     """
+                self.cursor.execute(SQL,
+                                    (pageType, contentID, seoUrl, "I", heading, metaPageTitle, metaDescription, heading,
+                                     datetime.now(), 'publish', heading))
+                self.conn.commit()
+                self.conn.close()
+            else:
+                print('already exist---')
+        except Exception as error:
+            print(error)
+
+    def resetAllBMSUrls(self):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ update contents set in_theatre='NO' where in_theatre='YES' """
+            self.cursor.execute(SQL)
+            self.conn.commit()
+            self.conn.close()
+        except Exception as error:
+            print(error)
+
+    def updateBMSUrlFromGadgets360(self):
+        try:
+            self.resetAllBMSUrls()
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            SQL = """ select content_id from crawling_gadget360_list_page where bms_status=1"""
+            self.cursor.execute(SQL)
+            data = self.cursor.fetchall()
+            self.conn.close()
+            return data
+        except Exception as error:
+            print(error)
+
+    def updateContentsForBMS(self, bmsStatus):
+        try:
+            self.conn, self.cursor = self.dbConnectionObj.dBConnectionForStreamA2Z()
+            for bms in bmsStatus:
+                contentID = bms['content_id']
+                SQL = """ update contents set in_theatre='YES' where id=""" + str(contentID)
+                self.cursor.execute(SQL)
+                self.conn.commit()
+            self.conn.close()
         except Exception as error:
             print(error)

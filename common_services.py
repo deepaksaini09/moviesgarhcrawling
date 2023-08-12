@@ -6,6 +6,7 @@ from scrapy.selector import Selector
 from scrapy.http import Request
 import math
 
+
 class commonServices:
     def __init__(self):
         self.user_agents_list = None
@@ -277,3 +278,10 @@ class commonServices:
             return None
         except Exception as error:
             print(error)
+
+    @staticmethod
+    def removeSpecialCharacters(input_string):
+        special_chars = "!@#$%^&*()_+=-[]{}|;':\",.<>?/~`"
+        translation_table = str.maketrans('', '', special_chars)
+        cleanedString = input_string.translate(translation_table)
+        return cleanedString

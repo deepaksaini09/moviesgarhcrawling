@@ -1,2 +1,4 @@
 from updateTmdbContent import updateImages
-updateImages()
+
+contentType = 'show'
+updateImages(contentType)
